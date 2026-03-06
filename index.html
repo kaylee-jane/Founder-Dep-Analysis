@@ -1,569 +1,143 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Founder Dependency Analysis™ | Digital Diagnostic</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #403D3D;
-      --text: #C7C7C7;
-      --accent: #BAA36C;
-      --accent-dim: rgba(186, 163, 108, 0.4);
-      --border: rgba(199, 199, 199, 0.15);
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Public Sans', -apple-system, sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; }
-    h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; font-weight: 500; color: var(--text); }
-    h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); margin: 0 0 0.5rem; letter-spacing: 0.02em; }
-    .subtitle { font-size: 0.9rem; color: var(--accent); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2rem; }
-    h2 { font-size: 1.35rem; margin: 2.5rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
-    h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; color: var(--accent); }
-    p { margin: 0 0 1rem; font-weight: 300; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import DiagnosticHeader from '@/components/diagnostic/DiagnosticHeader';
+import CalibrationSection from '@/components/diagnostic/CalibrationSection';
+import ProgressIndicator from '@/components/diagnostic/ProgressIndicator';
+import SectionView from '@/components/diagnostic/SectionView';
+import SubmissionForm from '@/components/diagnostic/SubmissionForm';
+import ConfirmationView from '@/components/diagnostic/ConfirmationView';
+import { SECTIONS, calculateScore, generateReport } from '@/components/diagnostic/diagnosticData';
 
-    /* Progress */
-    .progress-wrap {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: var(--bg);
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 2rem;
-    }
-    .progress-bar {
-      height: 3px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.35s ease; }
-    .progress-text { font-size: 0.8rem; color: var(--accent); margin-top: 0.5rem; letter-spacing: 0.05em; }
+export default function Home() {
+  const [phase, setPhase] = useState('calibration'); // calibration | questions | submission | confirmation
+  const [currentSection, setCurrentSection] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const topRef = useRef(null);
 
-    /* Calibration */
-    .calibration {
-      margin-bottom: 3rem;
-      padding: 1.5rem 0;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-    .calibration p:last-of-type { margin-bottom: 0; }
+  const scrollToTop = () => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-    /* Form sections */
-    .section { margin-bottom: 2.5rem; }
-    .section-intro { font-size: 0.95rem; margin-bottom: 1.25rem; color: rgba(199,199,199,0.9); }
-    .scale-legend {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: var(--accent-dim);
-      margin-bottom: 1rem;
-      letter-spacing: 0.03em;
-    }
-    .statement {
-      margin-bottom: 1.5rem;
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .statement:last-child { border-bottom: none; }
-    .statement label { display: block; margin-bottom: 0.75rem; font-weight: 400; }
-    .statement .reverse-note { font-size: 0.8rem; color: var(--accent-dim); font-style: italic; margin-top: 0.25rem; }
-    .radios {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem 1rem;
-      align-items: center;
-    }
-    .radios span {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .radios input { accent-color: var(--accent); cursor: pointer; }
-    .radios input:focus { outline: 1px solid var(--accent); outline-offset: 2px; }
+  const handleBegin = () => {
+    setPhase('questions');
+    scrollToTop();
+  };
 
-    /* User details */
-    .user-details { margin: 2.5rem 0; padding: 1.5rem 0; border-top: 1px solid var(--border); }
-    .user-details h2 { margin-top: 0; }
-    .form-group { margin-bottom: 1.25rem; }
-    .form-group label { display: block; margin-bottom: 0.4rem; font-size: 0.9rem; font-weight: 500; }
-    .form-group input {
-      width: 100%;
-      max-width: 400px;
-      padding: 0.65rem 0.75rem;
-      background: rgba(0,0,0,0.2);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text);
-      font-family: inherit;
-      font-size: 1rem;
-    }
-    .form-group input::placeholder { color: rgba(199,199,199,0.5); }
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-dim);
-    }
+  const handleAnswer = (key, value) => {
+    setAnswers(prev => ({ ...prev, [key]: value }));
+  };
 
-    /* Submit */
-    .submit-wrap { margin: 2.5rem 0; }
-    button[type="submit"] {
-      background: var(--accent);
-      color: var(--bg);
-      border: none;
-      padding: 0.9rem 2rem;
-      font-family: 'Public Sans', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.2s, transform 0.1s;
+  const handleNext = () => {
+    if (currentSection < SECTIONS.length - 1) {
+      setCurrentSection(prev => prev + 1);
+      scrollToTop();
+    } else {
+      setPhase('submission');
+      scrollToTop();
     }
-    button[type="submit"]:hover { background: #c9b87a; }
-    button[type="submit"]:active { transform: scale(0.98); }
-    button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+  };
 
-    /* Confirmation (hidden by default) */
-    .confirmation {
-      display: none;
-      text-align: center;
-      padding: 3rem 1.5rem;
-      border: 1px solid var(--accent);
-      border-radius: 8px;
-      margin: 2rem 0;
+  const handlePrev = () => {
+    if (currentSection > 0) {
+      setCurrentSection(prev => prev - 1);
+      scrollToTop();
     }
-    .confirmation.visible { display: block; }
-    .confirmation h2 { border: none; margin-top: 0; }
-    .confirmation p { margin-bottom: 0.5rem; }
-    .form-hidden { display: none; }
+  };
 
-    /* Step flow: one section at a time */
-    .step-content { display: none; }
-    .step-content.step-visible { display: block; }
-    .step-content .scale-legend { margin-top: 0; }
-    .nav-actions { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-    .btn-next {
-      background: var(--accent);
-      color: var(--bg);
-      border: none;
-      padding: 0.9rem 2rem;
-      font-family: 'Public Sans', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.2s;
-    }
-    .btn-next:hover { background: #c9b87a; }
-    .btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <p class="subtitle">Digital Diagnostic Instrument</p>
-      <h1>Founder Dependency Analysis™</h1>
-      <p>Evaluating structural reliance on the founder for decision-making, identity, operational continuity, and external relationships.</p>
-    </header>
+  const handleSubmit = async (formData) => {
+    setIsSubmitting(true);
 
-    <div class="progress-wrap">
-      <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-        <div class="progress-fill" id="progressFill"></div>
+    const score = calculateScore(answers);
+    const report = generateReport(score, score.sectionScores);
+
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      company: formData.company,
+      position: formData.position,
+      diagnostic_name: "Founder Dependency Analysis™",
+      diagnostic_score: `${score.overallPercentage}%`,
+      risk_level: score.riskLevel,
+      report_outcome: report,
+    };
+
+    const response = await fetch('https://formspree.io/f/mnjgaodj', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    setIsSubmitting(false);
+    setPhase('confirmation');
+    scrollToTop();
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div ref={topRef} />
+
+      {/* Subtle decorative elements */}
+      <div className="fixed top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent/30 to-transparent z-50" />
+      <div className="fixed bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent/20 to-transparent z-50" />
+
+      {/* Top bar with logo */}
+      <div className="max-w-4xl mx-auto px-4 md:px-8 pt-8 pb-0">
+        <img
+          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69aa1b33e03706a74c8ca9f8/980191e53_KJLOGO2.png"
+          alt="Kaylee-Jane"
+          className="h-12 md:h-14 w-auto"
+        />
       </div>
-      <div class="progress-text" id="progressText">Complete the sections below</div>
+
+      <div className="max-w-4xl mx-auto px-4 md:px-8 py-12 md:py-20">
+        <DiagnosticHeader />
+
+        {phase === 'calibration' && (
+          <CalibrationSection onBegin={handleBegin} />
+        )}
+
+        {phase === 'questions' && (
+          <div>
+            <ProgressIndicator
+              currentSection={currentSection}
+              totalSections={SECTIONS.length}
+            />
+            <SectionView
+              section={SECTIONS[currentSection]}
+              sectionIndex={currentSection}
+              answers={answers}
+              onAnswer={handleAnswer}
+              onNext={handleNext}
+              onPrev={handlePrev}
+              isFirst={currentSection === 0}
+              isLast={currentSection === SECTIONS.length - 1}
+              totalSections={SECTIONS.length}
+            />
+          </div>
+        )}
+
+        {phase === 'submission' && (
+          <SubmissionForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+        )}
+
+        {phase === 'confirmation' && (
+          <ConfirmationView />
+        )}
+
+        {/* Footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="mt-16 text-center"
+        >
+          <div className="w-8 h-[1px] bg-border mx-auto mb-4" />
+          <p className="text-muted-foreground/40 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+            © Kaylee-Jane &nbsp;|&nbsp; Structural Intelligence
+          </p>
+        </motion.div>
+      </div>
     </div>
-
-    <form id="diagnosticForm" action="https://formspree.io/f/mnjgaodj" method="POST">
-      <input type="hidden" name="_subject" value="Founder Dependency Analysis™ — Diagnostic Submission">
-      <input type="hidden" name="diagnostic_name" value="Founder Dependency Analysis™">
-      <input type="hidden" name="diagnostic_score" id="hiddenScore">
-      <input type="hidden" name="risk_level" id="hiddenRisk">
-      <input type="hidden" name="report_outcome" id="hiddenReport">
-
-      <div class="step-content step-visible" data-step="0">
-        <section class="calibration">
-          <h2>Calibration</h2>
-          <p><strong>What this instrument measures</strong> — Founder Dependency Analysis™ evaluates the extent to which your organisation’s decision-making, identity, operations, and external relationships are structurally dependent on the founder. It examines eight dimensions: founder identity centrality, decision authority concentration, relationship dependency, operational reliance, leadership structure maturity, strategic direction ownership, cultural authority, and succession readiness.</p>
-          <p><strong>Why the signal matters</strong> — High founder dependency increases risk during transition, scaling, or absence. Understanding where dependency is concentrated helps leadership prioritise institutionalisation and build resilience without losing the founder’s strategic value.</p>
-          <p><strong>How responses will be analysed</strong> — Your ratings (1–5 on each statement) are combined using a weighted scoring engine. Dimension scores and an overall dependency index are computed; reverse-scored items ensure that institutionalised practices lower the dependency signal. Results are reviewed by Kaylee-Jane and synthesised into a diagnostic report delivered within 24 hours.</p>
-        </section>
-        <p style="margin-bottom: 2rem;">Rate each statement from <strong>Strongly Disagree (1)</strong> to <strong>Strongly Agree (5)</strong>.</p>
-        <!-- 1. Founder Identity Centrality -->
-        <div class="section" data-section="1">
-        <h2>1. Founder Identity Centrality</h2>
-        <p class="section-intro">Whether the organisation’s identity is inseparable from the founder.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. The company’s brand identity is strongly tied to the founder’s personal reputation.</label><div class="radios" data-name="q1_1"></div></div>
-        <div class="statement"><label>2. Clients associate the organisation primarily with the founder rather than the company itself.</label><div class="radios" data-name="q1_2"></div></div>
-        <div class="statement"><label>3. The founder is the most visible representative of the organisation externally.</label><div class="radios" data-name="q1_3"></div></div>
-        <div class="statement"><label>4. If the founder were removed from public visibility, the brand would lose significant credibility.</label><div class="radios" data-name="q1_4"></div></div>
-        <div class="statement"><label>5. Marketing and messaging rely heavily on the founder’s personal story or persona.</label><div class="radios" data-name="q1_5"></div></div>
-        <div class="statement"><label>6. The organisation’s values and direction are defined primarily by the founder’s personal vision.</label><div class="radios" data-name="q1_6"></div></div>
-        <div class="statement"><label>7. Internal culture reflects the founder’s personality more than a defined organisational system.</label><div class="radios" data-name="q1_7"></div></div>
-        <div class="statement"><label>8. External stakeholders often request to work directly with the founder.</label><div class="radios" data-name="q1_8"></div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next" id="nextBtn">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="1">
-        <!-- 2. Decision Authority Concentration -->
-        <div class="section" data-section="2">
-        <h2>2. Decision Authority Concentration</h2>
-        <p class="section-intro">How much decision-making power is structurally centralised.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. Strategic decisions require the founder’s approval before implementation.</label><div class="radios" data-name="q2_1"></div></div>
-        <div class="statement"><label>2. Senior team members rarely make major decisions independently.</label><div class="radios" data-name="q2_2"></div></div>
-        <div class="statement"><label>3. Key operational decisions are frequently escalated to the founder.</label><div class="radios" data-name="q2_3"></div></div>
-        <div class="statement"><label>4. The organisation would struggle to maintain momentum if the founder were unavailable for several weeks.</label><div class="radios" data-name="q2_4"></div></div>
-        <div class="statement"><label>5. Employees often wait for the founder’s input before moving forward on important tasks.</label><div class="radios" data-name="q2_5"></div></div>
-        <div class="statement"><label>6. Decision-making authority across departments is clearly documented and distributed.</label><div class="radios" data-name="q2_6"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>7. Meetings frequently revolve around the founder resolving decisions.</label><div class="radios" data-name="q2_7"></div></div>
-        <div class="statement"><label>8. Projects stall when the founder is unavailable.</label><div class="radios" data-name="q2_8"></div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="2">
-        <!-- 3. Relationship Dependency -->
-        <div class="section" data-section="3">
-        <h2>3. Relationship Dependency</h2>
-        <p class="section-intro">Whether the organisation’s external relationships are founder-controlled.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. Key client relationships are maintained primarily by the founder.</label><div class="radios" data-name="q3_1"></div></div>
-        <div class="statement"><label>2. Major partnerships depend on the founder’s personal connections.</label><div class="radios" data-name="q3_2"></div></div>
-        <div class="statement"><label>3. Clients expect direct communication with the founder.</label><div class="radios" data-name="q3_3"></div></div>
-        <div class="statement"><label>4. Sales conversions are significantly higher when the founder is involved.</label><div class="radios" data-name="q3_4"></div></div>
-        <div class="statement"><label>5. The founder personally manages most strategic partnerships.</label><div class="radios" data-name="q3_5"></div></div>
-        <div class="statement"><label>6. If the founder stepped back from client interaction, revenue would be affected.</label><div class="radios" data-name="q3_6"></div></div>
-        <div class="statement"><label>7. The organisation has systems allowing client relationships to be managed without founder involvement.</label><div class="radios" data-name="q3_7"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>8. Stakeholders frequently bypass other team members to reach the founder directly.</label><div class="radios" data-name="q3_8"></div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="3">
-        <!-- 4. Operational Reliance -->
-        <div class="section" data-section="4">
-        <h2>4. Operational Reliance</h2>
-        <p class="section-intro">How dependent operations are on the founder’s knowledge and involvement.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. The founder holds operational knowledge that is not documented elsewhere.</label><div class="radios" data-name="q4_1"></div></div>
-        <div class="statement"><label>2. Team members frequently rely on the founder to resolve operational problems.</label><div class="radios" data-name="q4_2"></div></div>
-        <div class="statement"><label>3. Important processes exist primarily in the founder’s memory.</label><div class="radios" data-name="q4_3"></div></div>
-        <div class="statement"><label>4. The founder is regularly involved in day-to-day operational decisions.</label><div class="radios" data-name="q4_4"></div></div>
-        <div class="statement"><label>5. If the founder were absent for one month, operational stability would be at risk.</label><div class="radios" data-name="q4_5"></div></div>
-        <div class="statement"><label>6. Core systems allow operations to continue without founder involvement.</label><div class="radios" data-name="q4_6"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>7. The founder frequently intervenes to correct operational issues.</label><div class="radios" data-name="q4_7"></div></div>
-        <div class="statement"><label>8. Team members often seek the founder’s guidance before executing tasks.</label><div class="radios" data-name="q4_8"></div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="4">
-        <!-- 5. Leadership Structure Maturity -->
-        <div class="section" data-section="5">
-        <h2>5. Leadership Structure Maturity</h2>
-        <p class="section-intro">Whether leadership capacity exists beyond the founder.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. Senior leaders operate with clear authority independent of the founder.</label><div class="radios" data-name="q5_1"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>2. Leadership roles and responsibilities are clearly defined.</label><div class="radios" data-name="q5_2"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>3. The founder remains the primary source of direction for leadership.</label><div class="radios" data-name="q5_3"></div></div>
-        <div class="statement"><label>4. Department heads make independent decisions without waiting for founder approval.</label><div class="radios" data-name="q5_4"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>5. Leadership meetings are primarily driven by the founder’s agenda.</label><div class="radios" data-name="q5_5"></div></div>
-        <div class="statement"><label>6. The organisation has a defined leadership hierarchy.</label><div class="radios" data-name="q5_6"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>7. The founder frequently resolves conflicts that leadership could manage independently.</label><div class="radios" data-name="q5_7"></div></div>
-        <div class="statement"><label>8. Leadership development has been intentionally cultivated within the organisation.</label><div class="radios" data-name="q5_8"></div><div class="reverse-note">Reverse signal</div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="5">
-        <!-- 6. Strategic Direction Ownership -->
-        <div class="section" data-section="6">
-        <h2>6. Strategic Direction Ownership</h2>
-        <p class="section-intro">Who actually owns the future direction of the organisation.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. Strategic planning is led primarily by the founder.</label><div class="radios" data-name="q6_1"></div></div>
-        <div class="statement"><label>2. The long-term vision of the organisation originates from the founder.</label><div class="radios" data-name="q6_2"></div></div>
-        <div class="statement"><label>3. Leadership contributes meaningfully to strategic direction.</label><div class="radios" data-name="q6_3"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>4. Without the founder, strategic direction would become unclear.</label><div class="radios" data-name="q6_4"></div></div>
-        <div class="statement"><label>5. Major pivots depend on the founder’s initiative.</label><div class="radios" data-name="q6_5"></div></div>
-        <div class="statement"><label>6. Strategic priorities are documented and understood across leadership.</label><div class="radios" data-name="q6_6"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>7. The founder drives most innovation initiatives.</label><div class="radios" data-name="q6_7"></div></div>
-        <div class="statement"><label>8. The organisation’s future direction is structurally independent of the founder.</label><div class="radios" data-name="q6_8"></div><div class="reverse-note">Reverse signal</div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="6">
-        <!-- 7. Cultural Authority -->
-        <div class="section" data-section="7">
-        <h2>7. Cultural Authority</h2>
-        <p class="section-intro">Whether organisational culture is institutionalised or founder-driven.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. The founder’s personality strongly shapes the organisation’s culture.</label><div class="radios" data-name="q7_1"></div></div>
-        <div class="statement"><label>2. Employees interpret decisions based on what they believe the founder would want.</label><div class="radios" data-name="q7_2"></div></div>
-        <div class="statement"><label>3. Cultural norms are clearly documented and institutionalised.</label><div class="radios" data-name="q7_3"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>4. The founder acts as the final authority on values and behaviour.</label><div class="radios" data-name="q7_4"></div></div>
-        <div class="statement"><label>5. The organisation’s culture would change significantly if the founder stepped back.</label><div class="radios" data-name="q7_5"></div></div>
-        <div class="statement"><label>6. Cultural expectations are reinforced through leadership rather than the founder alone.</label><div class="radios" data-name="q7_6"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>7. Employees look to the founder as the symbolic centre of the organisation.</label><div class="radios" data-name="q7_7"></div></div>
-        <div class="statement"><label>8. Cultural stability depends heavily on the founder’s presence.</label><div class="radios" data-name="q7_8"></div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="7">
-        <!-- 8. Succession Readiness -->
-        <div class="section" data-section="8">
-        <h2>8. Succession Readiness</h2>
-        <p class="section-intro">Structural readiness for founder absence.</p>
-        <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
-        <div class="statement"><label>1. The organisation has a documented succession plan.</label><div class="radios" data-name="q8_1"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>2. Leadership could sustain operations without the founder for an extended period.</label><div class="radios" data-name="q8_2"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>3. The founder has intentionally transferred knowledge to leadership.</label><div class="radios" data-name="q8_3"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>4. The organisation would face major disruption if the founder stepped away suddenly.</label><div class="radios" data-name="q8_4"></div></div>
-        <div class="statement"><label>5. Leadership capability has been developed to support long-term independence.</label><div class="radios" data-name="q8_5"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>6. Strategic relationships would remain stable if the founder exited.</label><div class="radios" data-name="q8_6"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>7. The organisation’s systems are mature enough to operate without founder oversight.</label><div class="radios" data-name="q8_7"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>8. Founder transition has been intentionally considered within the organisation.</label><div class="radios" data-name="q8_8"></div></div>
-        </div>
-        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
-      </div>
-
-      <div class="step-content" data-step="8">
-      <section class="user-details">
-        <h2>Your details</h2>
-        <div class="form-group">
-          <label for="name">Name</label>
-          <input type="text" id="name" name="name" required placeholder="Full name">
-        </div>
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required placeholder="you@company.com">
-        </div>
-        <div class="form-group">
-          <label for="company">Company</label>
-          <input type="text" id="company" name="company" required placeholder="Organisation name">
-        </div>
-        <div class="form-group">
-          <label for="position">Position</label>
-          <input type="text" id="position" name="position" required placeholder="Your role">
-        </div>
-      </section>
-
-      <div class="submit-wrap">
-        <button type="submit" id="submitBtn">Submit diagnostic</button>
-      </div>
-      </div>
-    </form>
-
-    <div class="confirmation" id="confirmation">
-      <h2>Your submission has been received.</h2>
-      <p>Responses are now being reviewed &amp; analysed. A diagnostic report will be delivered by Kaylee-Jane within 24 hours.</p>
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      var REPVERSE = {
-        'q2_6': true, 'q3_7': true, 'q4_6': true,
-        'q5_1': true, 'q5_2': true, 'q5_4': true, 'q5_6': true, 'q5_8': true,
-        'q6_3': true, 'q6_6': true, 'q6_8': true,
-        'q7_3': true, 'q7_6': true,
-        'q8_1': true, 'q8_2': true, 'q8_3': true, 'q8_5': true, 'q8_6': true, 'q8_7': true
-      };
-      var DIM_WEIGHTS = [1, 1, 1, 1, 1.1, 1.1, 1, 1.15];
-
-      function buildRadios() {
-        document.querySelectorAll('.radios[data-name]').forEach(function (wrap) {
-          var name = wrap.getAttribute('data-name');
-          wrap.innerHTML = '';
-          for (var v = 1; v <= 5; v++) {
-            var span = document.createElement('span');
-            var input = document.createElement('input');
-            input.type = 'radio';
-            input.name = name;
-            input.value = v;
-            input.id = name + '_' + v;
-            span.insertBefore(input, span.firstChild);
-            var label = document.createElement('label');
-            label.htmlFor = input.id;
-            label.textContent = v;
-            label.style.marginLeft = '0';
-            span.appendChild(label);
-            wrap.appendChild(span);
-          }
-        });
-      }
-
-      function dependencyScore(value, reverse) {
-        var v = parseInt(value, 10);
-        if (isNaN(v) || v < 1 || v > 5) return null;
-        return reverse ? (6 - v) : v;
-      }
-
-      function collectScores() {
-        var scores = [];
-        var byDim = {};
-        document.querySelectorAll('.radios[data-name] input:checked').forEach(function (input) {
-          var name = input.name;
-          var rev = REPVERSE[name];
-          var s = dependencyScore(input.value, rev);
-          if (s !== null) {
-            scores.push(s);
-            var dim = name.split('_')[0];
-            if (!byDim[dim]) byDim[dim] = [];
-            byDim[dim].push(s);
-          }
-        });
-        return { all: scores, byDim: byDim };
-      }
-
-      function weightedOverall(scores) {
-        if (!scores.all.length) return null;
-        var dims = ['q1','q2','q3','q4','q5','q6','q7','q8'];
-        var weightedSum = 0, weightTotal = 0;
-        dims.forEach(function (dim, i) {
-          var arr = scores.byDim[dim];
-          if (arr && arr.length) {
-            var avg = arr.reduce(function (a,b) { return a+b; }, 0) / arr.length;
-            var w = DIM_WEIGHTS[i] || 1;
-            weightedSum += avg * w;
-            weightTotal += w;
-          }
-        });
-        if (weightTotal === 0) return scores.all.reduce(function (a,b) { return a+b; }, 0) / scores.all.length;
-        return Math.round((weightedSum / weightTotal) * 100) / 100;
-      }
-
-      function riskLevel(score) {
-        if (score == null) return 'Not calculated';
-        if (score < 2) return 'Low';
-        if (score < 3) return 'Moderate';
-        if (score < 4) return 'High';
-        return 'Critical';
-      }
-
-      function reportParagraph(score, risk, byDim) {
-        var dimNames = {
-          q1: 'Founder Identity Centrality', q2: 'Decision Authority Concentration', q3: 'Relationship Dependency',
-          q4: 'Operational Reliance', q5: 'Leadership Structure Maturity', q6: 'Strategic Direction Ownership',
-          q7: 'Cultural Authority', q8: 'Succession Readiness'
-        };
-        var dimAverages = {};
-        Object.keys(byDim).forEach(function (d) {
-          var arr = byDim[d];
-          dimAverages[d] = arr.reduce(function (a,b) { return a+b; }, 0) / arr.length;
-        });
-        var highest = Object.keys(dimAverages).sort(function (a,b) { return dimAverages[b] - dimAverages[a]; }).slice(0, 3);
-        var lowest = Object.keys(dimAverages).sort(function (a,b) { return dimAverages[a] - dimAverages[b]; }).slice(0, 2);
-        var riskDesc = risk === 'Critical' ? 'critical' : risk === 'High' ? 'elevated' : risk === 'Moderate' ? 'moderate' : 'lower';
-        var topDims = highest.map(function (d) { return dimNames[d]; }).join(', ');
-        var strongDims = lowest.map(function (d) { return dimNames[d]; }).join(', ');
-        return 'Founder Dependency Analysis™ indicates a ' + riskDesc + ' level of structural founder dependency (overall score: ' + score + '; risk level: ' + risk + '). ' +
-          'The dimensions with the highest dependency in this assessment are: ' + topDims + '. ' +
-          'Areas showing relatively stronger institutionalisation or distribution include: ' + (strongDims || 'none identified') + '. ' +
-          'This summary is based on weighted dimension scores and is intended for review and narrative reporting by Kaylee-Jane within 24 hours.';
-      }
-
-      function updateProgress() {
-        var total = document.querySelectorAll('.radios[data-name]').length;
-        var filled = document.querySelectorAll('.radios[data-name] input:checked').length;
-        var pct = total ? Math.round((filled / total) * 100) : 0;
-        document.getElementById('progressFill').style.width = pct + '%';
-        document.getElementById('progressFill').setAttribute('aria-valuenow', pct);
-        document.getElementById('progressText').textContent = pct === 100 ? 'Complete' : filled + ' of ' + total + ' responses';
-      }
-
-      buildRadios();
-      document.querySelectorAll('.radios[data-name] input').forEach(function (input) {
-        input.addEventListener('change', updateProgress);
-      });
-      updateProgress();
-
-      var currentStep = 0;
-      var stepContents = document.querySelectorAll('.step-content');
-      var totalSteps = stepContents.length;
-
-      function showStep(step) {
-        currentStep = step;
-        stepContents.forEach(function (el, i) {
-          el.classList.toggle('step-visible', i === step);
-        });
-        var pct = step < 8 ? Math.round(((step + 1) / 8) * 100) : 100;
-        document.getElementById('progressFill').style.width = pct + '%';
-        document.getElementById('progressFill').setAttribute('aria-valuenow', pct);
-        document.getElementById('progressText').textContent = step < 8 ? 'Section ' + (step + 1) + ' of 8' : 'Your details';
-      }
-
-      document.getElementById('diagnosticForm').addEventListener('click', function (e) {
-        if (e.target.classList.contains('btn-next') && currentStep < totalSteps - 1) {
-          e.preventDefault();
-          showStep(currentStep + 1);
-        }
-      });
-      showStep(0);
-
-      document.getElementById('diagnosticForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        var form = this;
-        var scores = collectScores();
-        var totalQs = 8 * 8;
-        if (scores.all.length < totalQs) {
-          alert('Please answer all ' + totalQs + ' statements before submitting.');
-          return;
-        }
-        var score = weightedOverall(scores);
-        var risk = riskLevel(score);
-        var report = reportParagraph(score, risk, scores.byDim);
-        document.getElementById('hiddenScore').value = score != null ? String(score) : '';
-        document.getElementById('hiddenRisk').value = risk;
-        document.getElementById('hiddenReport').value = report;
-
-        var submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Sending…';
-
-        fetch(form.action, {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { 'Accept': 'application/json' }
-        })
-          .then(function (r) {
-            if (r.ok) {
-              form.classList.add('form-hidden');
-              document.getElementById('confirmation').classList.add('visible');
-            } else throw new Error('Submit failed');
-          })
-          .catch(function () {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit diagnostic';
-            alert('Submission could not be sent. Please check your connection and try again.');
-          });
-      });
-    })();
-  </script>
-</body>
-</html>
+  );
+}
