@@ -155,6 +155,28 @@
     .confirmation h2 { border: none; margin-top: 0; }
     .confirmation p { margin-bottom: 0.5rem; }
     .form-hidden { display: none; }
+
+    /* Step flow: one section at a time */
+    .step-content { display: none; }
+    .step-content.step-visible { display: block; }
+    .step-content .scale-legend { margin-top: 0; }
+    .nav-actions { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .btn-next {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 0.9rem 2rem;
+      font-family: 'Public Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .btn-next:hover { background: #c9b87a; }
+    .btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -179,17 +201,16 @@
       <input type="hidden" name="risk_level" id="hiddenRisk">
       <input type="hidden" name="report_outcome" id="hiddenReport">
 
-      <section class="calibration">
-        <h2>Calibration</h2>
-        <p><strong>What this instrument measures</strong> — Founder Dependency Analysis™ evaluates the extent to which your organisation’s decision-making, identity, operations, and external relationships are structurally dependent on the founder. It examines eight dimensions: founder identity centrality, decision authority concentration, relationship dependency, operational reliance, leadership structure maturity, strategic direction ownership, cultural authority, and succession readiness.</p>
-        <p><strong>Why the signal matters</strong> — High founder dependency increases risk during transition, scaling, or absence. Understanding where dependency is concentrated helps leadership prioritise institutionalisation and build resilience without losing the founder’s strategic value.</p>
-        <p><strong>How responses will be analysed</strong> — Your ratings (1–5 on each statement) are combined using a weighted scoring engine. Dimension scores and an overall dependency index are computed; reverse-scored items ensure that institutionalised practices lower the dependency signal. Results are reviewed by Kaylee-Jane and synthesised into a diagnostic report delivered within 24 hours.</p>
-      </section>
-
-      <p style="margin-bottom: 2rem;">Rate each statement from <strong>Strongly Disagree (1)</strong> to <strong>Strongly Agree (5)</strong>.</p>
-
-      <!-- 1. Founder Identity Centrality -->
-      <div class="section" data-section="1">
+      <div class="step-content step-visible" data-step="0">
+        <section class="calibration">
+          <h2>Calibration</h2>
+          <p><strong>What this instrument measures</strong> — Founder Dependency Analysis™ evaluates the extent to which your organisation’s decision-making, identity, operations, and external relationships are structurally dependent on the founder. It examines eight dimensions: founder identity centrality, decision authority concentration, relationship dependency, operational reliance, leadership structure maturity, strategic direction ownership, cultural authority, and succession readiness.</p>
+          <p><strong>Why the signal matters</strong> — High founder dependency increases risk during transition, scaling, or absence. Understanding where dependency is concentrated helps leadership prioritise institutionalisation and build resilience without losing the founder’s strategic value.</p>
+          <p><strong>How responses will be analysed</strong> — Your ratings (1–5 on each statement) are combined using a weighted scoring engine. Dimension scores and an overall dependency index are computed; reverse-scored items ensure that institutionalised practices lower the dependency signal. Results are reviewed by Kaylee-Jane and synthesised into a diagnostic report delivered within 24 hours.</p>
+        </section>
+        <p style="margin-bottom: 2rem;">Rate each statement from <strong>Strongly Disagree (1)</strong> to <strong>Strongly Agree (5)</strong>.</p>
+        <!-- 1. Founder Identity Centrality -->
+        <div class="section" data-section="1">
         <h2>1. Founder Identity Centrality</h2>
         <p class="section-intro">Whether the organisation’s identity is inseparable from the founder.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -201,10 +222,13 @@
         <div class="statement"><label>6. The organisation’s values and direction are defined primarily by the founder’s personal vision.</label><div class="radios" data-name="q1_6"></div></div>
         <div class="statement"><label>7. Internal culture reflects the founder’s personality more than a defined organisational system.</label><div class="radios" data-name="q1_7"></div></div>
         <div class="statement"><label>8. External stakeholders often request to work directly with the founder.</label><div class="radios" data-name="q1_8"></div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next" id="nextBtn">Next</button></div>
       </div>
 
-      <!-- 2. Decision Authority Concentration -->
-      <div class="section" data-section="2">
+      <div class="step-content" data-step="1">
+        <!-- 2. Decision Authority Concentration -->
+        <div class="section" data-section="2">
         <h2>2. Decision Authority Concentration</h2>
         <p class="section-intro">How much decision-making power is structurally centralised.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -216,10 +240,13 @@
         <div class="statement"><label>6. Decision-making authority across departments is clearly documented and distributed.</label><div class="radios" data-name="q2_6"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>7. Meetings frequently revolve around the founder resolving decisions.</label><div class="radios" data-name="q2_7"></div></div>
         <div class="statement"><label>8. Projects stall when the founder is unavailable.</label><div class="radios" data-name="q2_8"></div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
       </div>
 
-      <!-- 3. Relationship Dependency -->
-      <div class="section" data-section="3">
+      <div class="step-content" data-step="2">
+        <!-- 3. Relationship Dependency -->
+        <div class="section" data-section="3">
         <h2>3. Relationship Dependency</h2>
         <p class="section-intro">Whether the organisation’s external relationships are founder-controlled.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -231,10 +258,13 @@
         <div class="statement"><label>6. If the founder stepped back from client interaction, revenue would be affected.</label><div class="radios" data-name="q3_6"></div></div>
         <div class="statement"><label>7. The organisation has systems allowing client relationships to be managed without founder involvement.</label><div class="radios" data-name="q3_7"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>8. Stakeholders frequently bypass other team members to reach the founder directly.</label><div class="radios" data-name="q3_8"></div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
       </div>
 
-      <!-- 4. Operational Reliance -->
-      <div class="section" data-section="4">
+      <div class="step-content" data-step="3">
+        <!-- 4. Operational Reliance -->
+        <div class="section" data-section="4">
         <h2>4. Operational Reliance</h2>
         <p class="section-intro">How dependent operations are on the founder’s knowledge and involvement.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -246,10 +276,13 @@
         <div class="statement"><label>6. Core systems allow operations to continue without founder involvement.</label><div class="radios" data-name="q4_6"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>7. The founder frequently intervenes to correct operational issues.</label><div class="radios" data-name="q4_7"></div></div>
         <div class="statement"><label>8. Team members often seek the founder’s guidance before executing tasks.</label><div class="radios" data-name="q4_8"></div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
       </div>
 
-      <!-- 5. Leadership Structure Maturity -->
-      <div class="section" data-section="5">
+      <div class="step-content" data-step="4">
+        <!-- 5. Leadership Structure Maturity -->
+        <div class="section" data-section="5">
         <h2>5. Leadership Structure Maturity</h2>
         <p class="section-intro">Whether leadership capacity exists beyond the founder.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -261,10 +294,13 @@
         <div class="statement"><label>6. The organisation has a defined leadership hierarchy.</label><div class="radios" data-name="q5_6"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>7. The founder frequently resolves conflicts that leadership could manage independently.</label><div class="radios" data-name="q5_7"></div></div>
         <div class="statement"><label>8. Leadership development has been intentionally cultivated within the organisation.</label><div class="radios" data-name="q5_8"></div><div class="reverse-note">Reverse signal</div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
       </div>
 
-      <!-- 6. Strategic Direction Ownership -->
-      <div class="section" data-section="6">
+      <div class="step-content" data-step="5">
+        <!-- 6. Strategic Direction Ownership -->
+        <div class="section" data-section="6">
         <h2>6. Strategic Direction Ownership</h2>
         <p class="section-intro">Who actually owns the future direction of the organisation.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -276,10 +312,13 @@
         <div class="statement"><label>6. Strategic priorities are documented and understood across leadership.</label><div class="radios" data-name="q6_6"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>7. The founder drives most innovation initiatives.</label><div class="radios" data-name="q6_7"></div></div>
         <div class="statement"><label>8. The organisation’s future direction is structurally independent of the founder.</label><div class="radios" data-name="q6_8"></div><div class="reverse-note">Reverse signal</div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
       </div>
 
-      <!-- 7. Cultural Authority -->
-      <div class="section" data-section="7">
+      <div class="step-content" data-step="6">
+        <!-- 7. Cultural Authority -->
+        <div class="section" data-section="7">
         <h2>7. Cultural Authority</h2>
         <p class="section-intro">Whether organisational culture is institutionalised or founder-driven.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -291,10 +330,13 @@
         <div class="statement"><label>6. Cultural expectations are reinforced through leadership rather than the founder alone.</label><div class="radios" data-name="q7_6"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>7. Employees look to the founder as the symbolic centre of the organisation.</label><div class="radios" data-name="q7_7"></div></div>
         <div class="statement"><label>8. Cultural stability depends heavily on the founder’s presence.</label><div class="radios" data-name="q7_8"></div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
       </div>
 
-      <!-- 8. Succession Readiness -->
-      <div class="section" data-section="8">
+      <div class="step-content" data-step="7">
+        <!-- 8. Succession Readiness -->
+        <div class="section" data-section="8">
         <h2>8. Succession Readiness</h2>
         <p class="section-intro">Structural readiness for founder absence.</p>
         <div class="scale-legend"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
@@ -305,9 +347,12 @@
         <div class="statement"><label>5. Leadership capability has been developed to support long-term independence.</label><div class="radios" data-name="q8_5"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>6. Strategic relationships would remain stable if the founder exited.</label><div class="radios" data-name="q8_6"></div><div class="reverse-note">Reverse signal</div></div>
         <div class="statement"><label>7. The organisation’s systems are mature enough to operate without founder oversight.</label><div class="radios" data-name="q8_7"></div><div class="reverse-note">Reverse signal</div></div>
-        <div class="statement"><label>8. Founder transition has been intentionally considered within the organisation.</label><div class="radios" data-name="q8_8"></div><div class="reverse-note">Reverse signal</div></div>
+        <div class="statement"><label>8. Founder transition has been intentionally considered within the organisation.</label><div class="radios" data-name="q8_8"></div></div>
+        </div>
+        <div class="nav-actions"><button type="button" class="btn-next">Next</button></div>
       </div>
 
+      <div class="step-content" data-step="8">
       <section class="user-details">
         <h2>Your details</h2>
         <div class="form-group">
@@ -331,6 +376,7 @@
       <div class="submit-wrap">
         <button type="submit" id="submitBtn">Submit diagnostic</button>
       </div>
+      </div>
     </form>
 
     <div class="confirmation" id="confirmation">
@@ -346,7 +392,7 @@
         'q5_1': true, 'q5_2': true, 'q5_4': true, 'q5_6': true, 'q5_8': true,
         'q6_3': true, 'q6_6': true, 'q6_8': true,
         'q7_3': true, 'q7_6': true,
-        'q8_1': true, 'q8_2': true, 'q8_3': true, 'q8_5': true, 'q8_6': true, 'q8_7': true, 'q8_8': true
+        'q8_1': true, 'q8_2': true, 'q8_3': true, 'q8_5': true, 'q8_6': true, 'q8_7': true
       };
       var DIM_WEIGHTS = [1, 1, 1, 1, 1.1, 1.1, 1, 1.15];
 
@@ -456,6 +502,29 @@
         input.addEventListener('change', updateProgress);
       });
       updateProgress();
+
+      var currentStep = 0;
+      var stepContents = document.querySelectorAll('.step-content');
+      var totalSteps = stepContents.length;
+
+      function showStep(step) {
+        currentStep = step;
+        stepContents.forEach(function (el, i) {
+          el.classList.toggle('step-visible', i === step);
+        });
+        var pct = step < 8 ? Math.round(((step + 1) / 8) * 100) : 100;
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressFill').setAttribute('aria-valuenow', pct);
+        document.getElementById('progressText').textContent = step < 8 ? 'Section ' + (step + 1) + ' of 8' : 'Your details';
+      }
+
+      document.getElementById('diagnosticForm').addEventListener('click', function (e) {
+        if (e.target.classList.contains('btn-next') && currentStep < totalSteps - 1) {
+          e.preventDefault();
+          showStep(currentStep + 1);
+        }
+      });
+      showStep(0);
 
       document.getElementById('diagnosticForm').addEventListener('submit', function (e) {
         e.preventDefault();
