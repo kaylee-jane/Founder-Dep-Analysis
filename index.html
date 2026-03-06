@@ -770,6 +770,7 @@
         <input type="hidden" name="diagnostic_name" id="f_diagnostic_name" value="Founder Dependency Analysis™">
         <input type="hidden" name="diagnostic_score" id="f_score">
         <input type="hidden" name="risk_level" id="f_risk">
+        <input type="hidden" name="section_scores" id="f_section_scores">
         <input type="hidden" name="diagnostic_report" id="f_report">
 
         <div class="form-grid">
@@ -1073,42 +1074,188 @@ function updateProgress() {
 // SCORING ENGINE
 // ══════════════════════════════════════
 function computeScores() {
+  const sectionLabels = [
+    'Founder Identity Centrality',
+    'Decision Authority Concentration',
+    'Relationship Dependency',
+    'Operational Reliance',
+    'Leadership Structure Maturity',
+    'Strategic Direction Ownership',
+    'Cultural Authority',
+    'Succession Readiness'
+  ];
+
+  let sectionScores = [];
   let totalWeighted = 0;
   let maxPossible = 0;
 
-  sections.forEach(sec => {
+  sections.forEach((sec, si) => {
+    let secRaw = 0;
     sec.questions.forEach((q, qi) => {
       const key = `s${sec.id}_q${qi+1}`;
       let raw = parseInt(answers[key]) || 3;
-      // Reverse items: a "5 agree" for reverse = low dependency
       let scored = q.reverse ? (6 - raw) : raw;
-      // All questions equal weight
+      secRaw += scored;
       totalWeighted += scored;
       maxPossible += 5;
     });
+    sectionScores.push(Math.round((secRaw / (sec.questions.length * 5)) * 100));
   });
 
   const scorePct = Math.round((totalWeighted / maxPossible) * 100);
-  let riskLevel = '';
-  let reportText = '';
 
-  if (scorePct <= 30) {
-    riskLevel = 'Low Dependency';
-    reportText = `The Founder Dependency Analysis™ for this organisation indicates a low level of structural reliance on the founder across the eight assessed dimensions. Decision-making authority appears to be distributed across a capable leadership team, and both operational and strategic systems demonstrate a degree of independence from the founder's direct involvement. Client relationships and cultural frameworks show signs of institutional embedding, suggesting the organisation is not primarily sustained by the founder's individual capital. Succession readiness indicators reveal an awareness of transition planning, and leadership development appears to have been intentionally cultivated. While all founder-led organisations carry some degree of personal dependency, this diagnostic profile reflects a relatively mature structural posture. The primary opportunity lies in continuing to codify and reinforce the systems, documentation, and leadership frameworks already in development — to ensure that the independence observed today becomes a durable, structural asset. A focused review of any remaining single points of founder reliance is recommended to close residual gaps and accelerate institutional resilience.`;
-  } else if (scorePct <= 55) {
-    riskLevel = 'Moderate Dependency';
-    reportText = `The Founder Dependency Analysis™ reveals a moderate level of structural dependency across this organisation. While certain functions demonstrate emerging independence — including some distributed decision-making and foundational operational systems — the diagnostic indicates significant areas where the founder remains a critical node in the organisation's architecture. Identity, strategic direction, and key relationships appear to carry elevated founder-centricity, creating a profile where short-term operational continuity may be achievable, but medium-term resilience without the founder remains uncertain. This moderate profile is common in organisations that have grown rapidly under strong founder leadership but have not yet formally transitioned structural authority to a leadership tier. It signals a crossroads: without deliberate intervention, dependency tends to deepen as complexity increases. The recommended focus areas include formalising decision-making authority, documenting critical knowledge and processes, and creating client relationship infrastructure that operates independently of founder involvement. Strategic succession planning — even in a preliminary form — is advisable at this stage to reduce concentration risk and enhance organisational valuation.`;
-  } else if (scorePct <= 75) {
-    riskLevel = 'High Dependency';
-    reportText = `The Founder Dependency Analysis™ indicates a high level of structural reliance on the founder across multiple critical dimensions. The diagnostic profile reflects an organisation where the founder occupies a central and often irreplaceable role in decision-making, external relationships, cultural authority, and strategic direction. Operational continuity, brand credibility, and leadership coherence all show significant ties to the founder's active presence. This level of dependency presents material risk: disruption to the founder's capacity — whether through planned transition, illness, or scale demands — would likely destabilise operations, client confidence, and internal direction simultaneously. The organisation's growth potential may also be constrained, as investor, acquirer, and partner confidence is typically discounted in highly founder-dependent structures. Immediate priority should be placed on mapping and redistributing decision authority, formalising succession structures, and beginning the systematic transfer of founder knowledge into institutional systems. Client and stakeholder relationships must be deliberately transitioned to the broader team. Cultural identity work — separating the organisation's values and narrative from the founder's personal brand — is also a critical intervention. This is a significant structural challenge, and one that is most effectively navigated with strategic advisory support.`;
-  } else {
-    riskLevel = 'Critical Dependency';
-    reportText = `The Founder Dependency Analysis™ has identified a critical level of structural dependency across this organisation. The diagnostic profile presents a highly centralised architecture in which the founder functions as the primary — and in many areas, the sole — source of authority, identity, operational knowledge, strategic direction, and relational capital. The organisation's current operational model is deeply personal, reflecting the founder's vision and presence in virtually every dimension assessed. At this level of dependency, the organisation faces acute vulnerability. The absence of the founder — even temporarily — would likely trigger significant disruption across operations, client confidence, team coherence, and strategic momentum. From a valuation, investment, and long-term scalability perspective, this profile represents one of the highest-risk structural configurations an organisation can hold. The work ahead is substantial but navigable. It requires a comprehensive structural redesign: the deliberate externalisation of the founder's knowledge into documented systems; the creation and empowerment of an independent leadership tier; the institutional embedding of culture, client relationships, and strategic frameworks; and the development of a formal succession architecture. This is not incremental improvement — it is structural transformation. Engaging dedicated strategic support to design and lead this transition is strongly recommended.`;
+  // Rank sections
+  const ranked = sectionScores.map((s, i) => ({ score: s, idx: i, label: sectionLabels[i] }))
+    .sort((a, b) => b.score - a.score);
+
+  const top2 = ranked.slice(0, 2);   // highest dependency
+  const bottom2 = ranked.slice(-2);  // lowest dependency (strongest areas)
+  const highest = top2[0];
+  const second = top2[1];
+  const strongest = bottom2[bottom2.length - 1];
+
+  // Risk band
+  let riskLevel = '';
+  if (scorePct <= 30) riskLevel = 'Low Dependency';
+  else if (scorePct <= 55) riskLevel = 'Moderate Dependency';
+  else if (scorePct <= 75) riskLevel = 'High Dependency';
+  else riskLevel = 'Critical Dependency';
+
+  // Section-level descriptors
+  const sectionInsights = {
+    'Founder Identity Centrality': {
+      high: 'the organisation's brand, credibility, and market presence are structurally inseparable from the founder — meaning external perception of the business is, in practice, perception of an individual',
+      low: 'the organisation has developed meaningful brand identity independent of the founder's personal presence'
+    },
+    'Decision Authority Concentration': {
+      high: 'decision-making power is heavily centralised — the organisation's forward momentum is governed by the founder's availability and attention',
+      low: 'decision-making authority is distributed across the leadership layer, allowing the organisation to move without constant founder involvement'
+    },
+    'Relationship Dependency': {
+      high: 'key client, partner, and stakeholder relationships are held personally by the founder — creating relational capital that cannot survive a transition',
+      low: 'external relationships are held at an organisational level, with systems in place to maintain them independently of the founder'
+    },
+    'Operational Reliance': {
+      high: 'critical operational knowledge, processes, and problem-solving capacity reside in the founder — the organisation's day-to-day functioning depends on their active presence',
+      low: 'operational systems and documentation are sufficiently developed that the organisation can function without the founder's direct involvement'
+    },
+    'Leadership Structure Maturity': {
+      high: 'the leadership layer lacks genuine structural authority — leaders operate as executors of the founder's direction rather than as independent decision-makers',
+      low: 'a capable leadership tier exists with defined authority, operating independently without requiring the founder's constant direction'
+    },
+    'Strategic Direction Ownership': {
+      high: 'the organisation's strategic vision, planning, and innovation are entirely founder-owned — there is no shared institutional ownership of the future',
+      low: 'strategic direction is distributed across leadership, with documented priorities that exist independently of the founder's personal vision'
+    },
+    'Cultural Authority': {
+      high: 'the organisation's culture is an extension of the founder's personality — it exists in their presence and is vulnerable to their absence',
+      low: 'cultural norms and values are institutionalised and reinforced through leadership, not dependent on the founder's personal presence'
+    },
+    'Succession Readiness': {
+      high: 'there is no structural preparation for founder absence — the organisation would face significant disruption if the founder stepped back suddenly or permanently',
+      low: 'succession infrastructure is developing, with intentional knowledge transfer and leadership capability being built toward long-term independence'
+    }
+  };
+
+  // Interaction analysis
+  const interactionMap = {
+    'Founder Identity Centrality|Leadership Structure Maturity': 'The combination of high Identity Centrality and weak Leadership Structure Maturity creates a compounding risk: the organisation's external credibility is anchored to the founder, while the internal architecture required to redistribute that dependency does not yet exist.',
+    'Decision Authority Concentration|Leadership Structure Maturity': 'Decision Authority Concentration and Leadership Structure Maturity are directly linked — when leaders lack genuine authority, decisions compress upward by default. These two dimensions must be addressed together.',
+    'Relationship Dependency|Succession Readiness': 'High Relationship Dependency combined with low Succession Readiness means that the organisation's most valuable external assets — its client and partner relationships — are among the least protected in a transition scenario.',
+    'Operational Reliance|Succession Readiness': 'Where Operational Reliance is high and Succession Readiness is low, the organisation carries a dual vulnerability: critical knowledge is undocumented and there is no structural plan to transfer it.',
+    'Strategic Direction Ownership|Leadership Structure Maturity': 'When Strategic Direction Ownership sits with the founder alone and the Leadership Structure is immature, the organisation has no internal mechanism to sustain direction if the founder's involvement changes.',
+    'Cultural Authority|Founder Identity Centrality': 'The co-elevation of Cultural Authority and Identity Centrality indicates that both the internal and external faces of the organisation are founder-dependent — creating a profile where transition risk is amplified across every stakeholder group simultaneously.'
+  };
+
+  let interaction = '';
+  const topLabels = top2.map(t => t.label);
+  for (const [key, val] of Object.entries(interactionMap)) {
+    const parts = key.split('|');
+    if (topLabels.includes(parts[0]) && topLabels.includes(parts[1])) {
+      interaction = val;
+      break;
+    }
   }
+
+  // Priority signal
+  const priorityMap = {
+    'Founder Identity Centrality': 'Begin separating the organisation's brand narrative from your personal story — build case studies, institutional thought leadership, and client-facing materials that foreground the organisation, not the individual.',
+    'Decision Authority Concentration': 'Map every recurring decision category and formally assign authority at the appropriate level. The goal is not delegation — it is structural redistribution of decision rights.',
+    'Relationship Dependency': 'Conduct a relationship audit: identify every key client, partner, and stakeholder relationship held personally by the founder and design a structured transition to team ownership.',
+    'Operational Reliance': 'Begin a knowledge externalisation process — identify every critical process, workflow, and operational dependency that exists in the founder's memory and build it into documented systems.',
+    'Leadership Structure Maturity': 'Invest in the structural empowerment of your leadership layer — define decision rights explicitly, create accountability frameworks, and build the leadership capability required to hold authority independently.',
+    'Strategic Direction Ownership': 'Formalise strategic planning as a leadership process, not a founder exercise — create documented strategic frameworks that the leadership team owns and can evolve without the founder's initiation.',
+    'Cultural Authority': 'Begin institutionalising culture — define values in behavioural terms, build transmission systems that do not depend on proximity to the founder, and empower leaders to model and reinforce cultural standards.',
+    'Succession Readiness': 'Initiate a succession planning process — even in outline form. Map the critical knowledge, relationships, and decisions that would need to be transferred, and begin building the structural architecture to support a future transition.'
+  };
+
+  const priority = priorityMap[highest.label] || '';
+
+  // Section scores string
+  const secScoresStr = sectionLabels.map((l, i) => `${l}: ${sectionScores[i]}%`).join(' | ');
+
+  // Build personalised report
+  const report = buildFDAReport(scorePct, riskLevel, highest, second, strongest, interaction, priority, sectionScores, sectionLabels);
 
   document.getElementById('f_score').value = scorePct;
   document.getElementById('f_risk').value = riskLevel;
-  document.getElementById('f_report').value = reportText;
+  document.getElementById('f_section_scores').value = secScoresStr;
+  document.getElementById('f_report').value = report;
+}
+
+function buildFDAReport(score, band, highest, second, strongest, interaction, priority, sectionScores, labels) {
+  const sectionInsights = {
+    'Founder Identity Centrality': { high: 'the organisation's brand, credibility, and market presence are structurally inseparable from the founder', low: 'the organisation has developed meaningful brand identity independent of the founder's personal presence' },
+    'Decision Authority Concentration': { high: 'decision-making power is heavily centralised around the founder', low: 'decision-making authority is distributed across the leadership layer' },
+    'Relationship Dependency': { high: 'key client, partner, and stakeholder relationships are held personally by the founder', low: 'external relationships are held at an organisational level with systems to maintain them independently' },
+    'Operational Reliance': { high: 'critical operational knowledge and processes reside primarily in the founder', low: 'operational systems are sufficiently documented that the organisation can function without the founder's direct involvement' },
+    'Leadership Structure Maturity': { high: 'the leadership layer lacks genuine structural authority and operates as executors of the founder's direction', low: 'a capable leadership tier exists with defined authority operating independently' },
+    'Strategic Direction Ownership': { high: 'the organisation's strategic vision and planning are entirely founder-owned', low: 'strategic direction is distributed across leadership with documented priorities independent of the founder' },
+    'Cultural Authority': { high: 'the organisation's culture is an extension of the founder's personality and presence', low: 'cultural norms are institutionalised and reinforced through leadership' },
+    'Succession Readiness': { high: 'there is no structural preparation for founder absence', low: 'succession infrastructure is developing with intentional knowledge transfer in progress' }
+  };
+
+  const bandIntros = {
+    'Low Dependency': `The Founder Dependency Analysis™ returns a Low Dependency profile for this organisation, with an overall structural dependency score of ${score}%. Across the eight assessed dimensions, the diagnostic reflects an organisation that has made deliberate progress toward structural independence from its founder. Decision-making authority, operational systems, and leadership capacity all demonstrate a degree of institutional maturity that positions this business favourably for continued scale, transition planning, or external investment.`,
+    'Moderate Dependency': `The Founder Dependency Analysis™ returns a Moderate Dependency profile for this organisation, with an overall structural dependency score of ${score}%. The diagnostic reveals a business that has developed foundational structures in several dimensions, but retains significant areas of founder-centricity that create meaningful risk as the organisation scales. This profile is characteristic of organisations at an inflection point — grown beyond the stage where informal founder-led structures are sufficient, but not yet fully transitioned to institutional architecture.`,
+    'High Dependency': `The Founder Dependency Analysis™ returns a High Dependency profile for this organisation, with an overall structural dependency score of ${score}%. The diagnostic reveals a business where the founder occupies a structurally load-bearing role across multiple critical dimensions. While the organisation is functioning, it is functioning in a way that is architecturally contingent on one individual — creating compounding risk across resilience, scalability, and long-term value.`,
+    'Critical Dependency': `The Founder Dependency Analysis™ returns a Critical Dependency profile for this organisation, with an overall structural dependency score of ${score}%. The diagnostic presents a highly centralised architecture in which the founder functions as the primary — and in many dimensions, the sole — source of authority, identity, operational knowledge, and strategic direction. This is one of the highest-risk structural configurations a scaling organisation can hold.`
+  };
+
+  const highInsight = sectionInsights[highest.label] ? sectionInsights[highest.label].high : '';
+  const secondInsight = sectionInsights[second.label] ? sectionInsights[second.label].high : '';
+  const strongInsight = sectionInsights[strongest.label] ? sectionInsights[strongest.label].low : '';
+
+  let interactionPara = interaction ? `
+
+The relationship between these two dimensions is significant. ${interaction}` : '';
+
+  const bandClosings = {
+    'Low Dependency': `The structural foundation this organisation has built is an asset. The priority now is codification — ensuring that the independence that currently exists in practice becomes embedded in documented systems, formal authority structures, and institutional processes that do not depend on any individual's continued presence to function. Focused attention on the residual gaps identified above will convert this profile from strong to structurally excellent.`,
+    'Moderate Dependency': `This profile represents the most common structural configuration in scaling founder-led organisations — and the most important moment to intervene. Without deliberate structural investment, Moderate Dependency does not stabilise; it deepens as operational complexity increases. The work required is specific and navigable, but it must be initiated with intention, not deferred to a future stage of growth.`,
+    'High Dependency': `The structural intervention required here is not incremental. It is architectural. The organisation needs a deliberate redesign of how authority, knowledge, relationships, and culture are held — moving each from personal dependency to institutional infrastructure. This is significant work, and it is most effectively approached with structured strategic support rather than ad hoc adjustment.`,
+    'Critical Dependency': `The work ahead is substantial but navigable. It requires a comprehensive structural redesign across every dimension identified as critically dependent — from the externalisation of founder knowledge into institutional systems, to the creation of a genuine leadership tier with distributed authority, to the formal development of succession architecture. This is not incremental improvement. It is structural transformation, and it is most effectively led with dedicated advisory engagement.`
+  };
+
+  return `${bandIntros[band]}
+
+HIGHEST RISK DIMENSIONS
+
+The dimension carrying the most acute structural risk in this profile is ${highest.label} (${highest.score}%), where ${highInsight}. This is the area requiring the most immediate structural attention.
+
+The second highest-risk dimension is ${second.label} (${second.score}%), where ${secondInsight}. Together, these two dimensions represent the primary concentration of structural vulnerability in this organisation.${interactionPara}
+
+STRUCTURAL STRENGTH
+
+The dimension showing the greatest relative structural strength in this profile is ${strongest.label} (${strongest.score}%), where ${strongInsight}. This represents an area where structural investment has already generated meaningful independence and provides a foundation to build from.
+
+PRIORITY STRUCTURAL SIGNAL
+
+Based on the specific configuration of this diagnostic profile, the single most important structural priority is: ${priority}
+
+OVERALL ASSESSMENT
+
+${bandClosings[band]}`;
 }
 
 // ══════════════════════════════════════
